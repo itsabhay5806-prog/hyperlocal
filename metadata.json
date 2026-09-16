@@ -1,0 +1,6 @@
+{
+  "name": "HyperLocal",
+  "description": "Production-ready location-based community platform connecting neighbors, local businesses, events, help requests, and civic alerts with real geolocation.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
