@@ -23,7 +23,6 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
 
   // Security and request parsing
   app.use(cors());
@@ -83,9 +82,11 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 HyperLocal Server running on http://0.0.0.0:${PORT}`);
-  });
+  const PORT = Number(process.env.PORT) || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
 }
 
 startServer().catch((err) => {
