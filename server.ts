@@ -1,5 +1,4 @@
 import express from 'express';
-import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -22,7 +21,11 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -33,23 +36,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health
-app.get('/api/health', async (req, res) => {
-  res.json({
-    status: 'ok',
-    time: new Date()
-  });
+// Connect to MongoDB before handling API requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    res.status(500).json({
+      error: 'Database connection failed',
+    });
+  }
 });
 
-// Connect database
-let dbInitialized = false;
-
-async function initializeDB() {
-  if (!dbInitialized) {
-    await connectDB();
-    dbInitialized = true;
-  }
-}
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    time: new Date(),
+  });
+});
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -65,30 +71,29 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Production static frontend
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(process.cwd(), 'dist');
-
-  app.use(express.static(distPath));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+// API 404
+app.use('/api/*', (_req, res) => {
+  res.status(404).json({
+    error: 'API route not found',
   });
-}
+});
 
-// Local development
+// API error handler
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled API error:', err);
+
+  res.status(err?.status || 500).json({
+    error: 'An internal server error occurred.',
+  });
+});
+
+// Start local server only when running locally
 if (process.env.NODE_ENV !== 'production') {
   const PORT = Number(process.env.PORT) || 3000;
 
-  initializeDB()
-    .then(() => {
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 Server running on http://localhost:${PORT}`);
-      });
-    })
-    .catch((err) => {
-      console.error('Fatal Server Startup Error:', err);
-    });
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+  });
 }
 
 export default app;
