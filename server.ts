@@ -72,12 +72,15 @@ app.use('/api/system', systemRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // API 404
-app.use('/api/*', (_req, res) => {
-  res.status(404).json({
-    error: 'API route not found',
-  });
-});
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({
+      error: 'API route not found',
+    });
+  }
 
+  next();
+});
 // API error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Unhandled API error:', err);
